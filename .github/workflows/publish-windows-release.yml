@@ -34,7 +34,10 @@ jobs:
         run: npm ci --prefix web-client
 
       - name: Build Windows installer
-        run: npm run build
+        run: |
+          npm run build:web
+          npm run build:css
+          npx electron-builder --publish never
 
       - name: Prepare release assets
         shell: pwsh
