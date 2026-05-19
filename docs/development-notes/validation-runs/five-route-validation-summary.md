@@ -1,0 +1,154 @@
+# 五路線驗證總結報告
+
+執行日期：2026-05-14  
+驗證藍圖：`docs/development-notes/system-validation-blueprint.md`  
+驗證方式：一次啟動 5 個 Agent，分別執行路線 A、B、C、D、E。  
+總體結論：資料層、API 與推薦核心大多可跑通；本輪發現 2 個高優先缺陷、數個中低風險，以及一批需要 UI 自動化或人工補驗的畫面互動項。
+
+## 1. 本輪產出檔案
+
+| 路線 | 負責 Agent | 報告檔 |
+| --- | --- | --- |
+| A：主資料建置與空白預設驗證 | Averroes | `docs/development-notes/validation-runs/route-a-main-data.md` |
+| B：設備、浸泡式脫脂與溶劑更換驗證 | Russell | `docs/development-notes/validation-runs/route-b-equipment-degreasing-solvent.md` |
+| C：真空式脫脂排程與推薦驗證 | Lorentz | `docs/development-notes/validation-runs/route-c-vacuum.md` |
+| D：真空式燒結排程與承載限制驗證 | Tesla | `docs/development-notes/validation-runs/route-d-sintering.md` |
+| E：資料生命週期、異常情境與穩定性驗證 | Wegener | `docs/development-notes/validation-runs/route-e-lifecycle-stability.md` |
+
+## 2. 共通檢查結果
+
+| 項目 | 結果 | 備註 |
+| --- | --- | --- |
+| `npm run build:web` | 通過 | Vite production build 成功。 |
+| `npm run build:css` | 通過 | Tailwind build 成功；有 Browserslist/caniuse-lite outdated 提示。 |
+| 正式 renderer module 語法檢查 | 通過 | 排除未被 `index.html` 載入的 `renderer-scripts/temp-test.js`。 |
+| `renderer-scripts/temp-test.js` | 失敗 | 暫存檔有語法錯誤 `Unexpected token '}'`，正式 UI 載入的是 `renderer-scripts/app.js`，不列為產品阻斷，但建議清理。 |
+| 暫存 DB / API 驗證 | 通過為主 | 各 Agent 使用暫存 SQLite DB，不寫入正式資料庫。 |
+| Electron UI 點擊驗證 | 未自動執行 | 本輪以資料層、API、建置與靜態檢查為主；畫面點擊、toast、截圖需下一輪補驗。 |
+
+## 3. 五路線摘要
+
+### 路線 A：主資料建置與空白預設
+
+核心流程通過：
+
+- 產品主檔新增、必填阻擋、搜尋、編輯可用。
+- 作業標準可建立、搜尋、編輯，產品主檔未選時 API 會阻擋。
+- 治具主檔可建立、搜尋、編輯。
+- 治具推薦規則可儲存並重新讀取。
+- 前端靜態檢查顯示新增模式會清空欄位，下拉有「請選擇...」預設。
+
+主要風險：
+
+- 作業標準缺少 `product_height` / `tray_capacity` 時，API 仍會建立資料並補 `0` / `1`。
+- 治具缺少材質 / 用途時，API 仍會建立資料並補 `other` / `support_block`。
+- UI 實際點擊、toast 與截圖未自動驗證。
+
+### 路線 B：設備、浸泡式脫脂與溶劑更換
+
+核心流程通過：
+
+- 設備新增、停用、分表查詢可用。
+- 未選設備建立浸泡投入會被阻擋。
+- 單台與多台浸泡投入可建立。
+- 停用設備建立浸泡投入會被後端阻擋。
+- 溶劑更換、儀表板資料源、報表資料源通過。
+
+主要風險：
+
+- 前端設備卡片可能仍顯示或允許選取停用設備，最後才由後端阻擋。
+- `changeSolvent()` 未檢查設備是否啟用，是否要阻擋停用設備做溶劑更換需確認。
+- UI 實際點擊流程未自動驗證。
+
+### 路線 C：真空式脫脂排程與推薦
+
+核心流程通過：
+
+- 真空式脫脂設備與 profile 可建立。
+- 正常品項可產生可行推薦。
+- 容量超限、高度超限、無治具規則 fallback 都可處理，不會崩潰。
+- 批次儲存、列表查詢與重開 DB 後持久性通過。
+
+明確風險：
+
+- `createVacuumBatch()` 在沒有 `vacuum_machine_id` 時仍會建立批次，與藍圖「未選設備應阻擋」不一致。
+
+### 路線 D：真空式燒結排程與承載限制
+
+核心流程通過：
+
+- 真空式燒結爐與 profile 可建立。
+- 單一品項可產生可行推薦。
+- 燒結批次可儲存並查詢 layout plan。
+- 混裝限制、高度超限、治具 restricted 規則都能反映為不可行。
+- 儀表板資料源與報表 snapshot 可查到批次。
+
+明確失敗：
+
+- `createSinteringBatch()` 在沒有 `furnace_machine_id` 時仍會建立批次，且主檔 `furnace_machine_id` 為 `null`，與藍圖「未選爐應阻擋」不一致。
+
+### 路線 E：生命週期、異常情境與穩定性
+
+核心流程通過：
+
+- 重複產品主檔 / 規格代碼會被阻擋。
+- 重複治具編號會被阻擋。
+- 已被引用的產品作業標準可封存並恢復，歷史批次仍可查。
+- 設備停用後新浸泡投入會被阻擋，歷史資料仍可查。
+- 修改單盤容量會影響新推薦，歷史批次保留原資料。
+- 未來日期、無結果搜尋、大量資料與系統資訊 API 通過。
+
+主要風險：
+
+- E-10 快速切換頁籤 20 次未自動執行，需要 UI 自動化或人工補驗。
+- 重複治具編號錯誤訊息是 SQLite constraint 原文，建議轉中文。
+
+## 4. 優先缺陷清單
+
+| 優先級 | 編號 | 問題 | 影響 | 建議 |
+| --- | --- | --- | --- | --- |
+| 高 | DEF-001 | 真空式脫脂批次未選設備仍可建立 | API 或未來匯入流程可產生 `vacuum_machine_id = null` 的批次 | 在 `createVacuumBatch()` 或 API 層要求 `vacuum_machine_id` 必填，UI 同步顯示中文提示。 |
+| 高 | DEF-002 | 真空式燒結批次未選爐仍可建立 | 可產生主檔無爐號但 layout plan 有推薦爐的資料不一致 | 在 `createSinteringBatch()` 或 API 層要求 `furnace_machine_id` 必填。 |
+| 中 | DEF-003 | 作業標準高度與單盤容量缺值時後端自動補值 | 可能建立看似合法但實際不完整的製程規格 | 新增後端 validation：高度需明確輸入且 >= 0，單盤容量需明確輸入且 >= 1。 |
+| 中 | DEF-004 | 治具缺材質/用途時後端自動補預設 | 可能建立用途不明或分類錯誤治具 | 新增後端 validation：材質、用途、狀態需明確選擇；`other` 應要求手動輸入或明確確認。 |
+| 中 | DEF-005 | 停用設備可能仍可在前端卡片被選取 | 使用者可能操作到最後才被後端擋下，體驗不佳 | 前端卡片過濾 active，或顯示停用且禁止點擊。 |
+| 待確認 | DEF-006 | 溶劑更換是否允許停用設備 | 現場規則不明，可能與投入作業規則不一致 | 與使用者確認規則；若不允許，`changeSolvent()` 加 active 檢查。 |
+| 低 | DEF-007 | 重複治具編號錯誤訊息為 SQLite 原文 | 現場使用者難理解 | 轉成中文訊息「治具編號不可重複」。 |
+| 低 | DEF-008 | `renderer-scripts/temp-test.js` 語法錯誤 | 不影響正式載入，但增加維護噪音 | 刪除、修復或移出正式 package files。 |
+
+## 5. 未自動驗證項目
+
+本輪未完成的共同項目：
+
+- Electron 桌面 UI 逐步點擊。
+- toast 文案與視覺提示。
+- 實際畫面截圖。
+- 快速切換頁籤 20 次的白屏 / 卡死 / console error 觀察。
+- 停用設備卡片是否可點、是否有禁用樣式。
+- 報表與儀表板的實際畫面渲染，只驗證了資料源。
+
+原因：
+
+- 本輪重點是五 Agent 同步跑資料層、API 與建置驗證。
+- 為避免污染正式資料，各路線使用暫存 SQLite DB。
+- 目前專案尚未建立可重用的 Electron UI E2E 測試 harness。
+
+## 6. 建議下一步
+
+建議先修正高優先資料一致性問題：
+
+1. 修 `createVacuumBatch()`：未傳 `vacuum_machine_id` 時阻擋。
+2. 修 `createSinteringBatch()`：未傳 `furnace_machine_id` 時阻擋。
+3. 補強作業標準與治具主檔後端 validation，讓 API 防線與 UI 空白預設策略一致。
+4. 釐清停用設備是否允許溶劑更換。
+5. 補一輪 UI 驗證：從路線 A 到 E 各抽關鍵步驟，使用人工或 browser/Electron automation 留截圖。
+
+## 7. 驗證狀態表
+
+| 路線 | 資料層/API | 建置/語法 | UI 點擊 | 結論 |
+| --- | --- | --- | --- | --- |
+| A | 大致通過，有 2 個中風險 | 通過 | 未自動執行 | 可用，但需補後端欄位必填防線。 |
+| B | 通過 | 後端語法通過 | 未自動執行 | 可用，需改善停用設備前端體驗。 |
+| C | 大致通過，有 1 個高風險 | 後端語法通過 | 未自動執行 | 推薦可用，但批次必選設備需修。 |
+| D | 大致通過，有 1 個高風險 | 後端語法通過 | 未自動執行 | 推薦可用，但批次必選爐需修。 |
+| E | 14/15 自動通過 | build 通過 | E-10 未自動執行 | 生命週期穩定，需補 UI 壓力測試。 |

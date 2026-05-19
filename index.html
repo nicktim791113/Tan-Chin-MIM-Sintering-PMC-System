@@ -1,0 +1,672 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tan Chin MIM PMC System</title>
+    <link rel="stylesheet" href="./assets/css/tailwind.css">
+    <style>
+      @media (min-width: 768px) {
+        .product-spec-form-grid {
+          display: grid;
+          gap: 0.625rem;
+          grid-template-columns: repeat(5, minmax(0, 1fr));
+        }
+      }
+      @media (min-width: 1280px) {
+        .product-spec-form-grid {
+          grid-template-columns: repeat(8, minmax(0, 1fr));
+        }
+        .fixture-form-grid {
+          display: grid;
+          gap: 0.625rem;
+          grid-template-columns: repeat(7, minmax(0, 1fr));
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="mx-auto min-h-screen max-w-[1800px] space-y-4 p-4 xl:p-6">
+      <header class="panel sticky top-4 z-30 p-4">
+        <div class="flex flex-col gap-4">
+          <div class="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+            <div class="flex items-center gap-4">
+              <img src="./assets/icon.png" alt="Tan Chin MIM PMC System Logo" class="h-16 w-16 rounded-xl shadow-sm object-cover">
+              <div>
+                <p class="text-xs uppercase tracking-[0.28em] text-slate">Tan Chin MIM</p>
+                <h1 class="mt-1 text-3xl font-black text-ink">脫脂 / 燒結整合監控系統</h1>
+                <p class="mt-1 text-sm text-slate">管理浸泡式脫脂、真空式脫脂與真空式燒結的設備、批次與排盤試算。</p>
+              </div>
+            </div>
+            <div class="grid gap-3 text-sm md:grid-cols-2 xl:min-w-[420px]">
+              <div class="info-tile">
+                <p class="text-xs uppercase tracking-wide text-slate">本機 API</p>
+                <p id="server-meta" class="mt-1 font-semibold text-ink">-</p>
+              </div>
+              <div class="info-tile">
+                <p class="text-xs uppercase tracking-wide text-slate">更新狀態</p>
+                <p id="update-status" class="mt-1 font-semibold text-ink">系統啟動中</p>
+              </div>
+            </div>
+          </div>
+          <nav class="top-nav">
+            <button type="button" class="nav-tab nav-tab-active" data-view-target="dashboard">儀表板</button>
+            <button type="button" class="nav-tab" data-view-target="products">主要資料</button>
+            <button type="button" class="nav-tab" data-view-target="machines">設備設定</button>
+            <button type="button" class="nav-tab" data-view-target="degreasing">浸泡式脫脂作業</button>
+            <button type="button" class="nav-tab" data-view-target="solvent">溶劑更換管理</button>
+            <button type="button" class="nav-tab" data-view-target="vacuum">真空式脫脂作業</button>
+            <button type="button" class="nav-tab" data-view-target="sintering">真空式燒結作業</button>
+            <button type="button" class="nav-tab" data-view-target="reports">查詢報表</button>
+            <button type="button" class="nav-tab" data-view-target="settings">系統管理</button>
+          </nav>
+        </div>
+      </header>
+
+      <main class="space-y-4">
+        <section data-view-panel="dashboard" class="space-y-4">
+          <div class="panel p-4 xl:p-4">
+            <div class="panel-header">
+              <div>
+                <h2 class="text-2xl font-black text-ink">儀表板</h2>
+                <p class="text-sm text-slate">總覽溶劑警示、真空設備數量與近期批次。</p>
+              </div>
+            </div>
+            <div id="dashboard-summary-cards" class="grid gap-4 md:grid-cols-2 2xl:grid-cols-5"></div>
+          </div>
+          <div class="panel p-4 xl:p-4">
+            <div class="panel-header"><h3 class="text-xl font-bold text-ink">浸泡式脫脂設備狀態</h3></div>
+            <div id="dashboard-machine-cards" class="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"></div>
+          </div>
+          <div class="grid gap-4 xl:gap-4 xl:grid-cols-3">
+            <div class="panel p-4 xl:p-4">
+              <div class="panel-header"><h3 class="text-xl font-bold text-ink">近期真空式脫脂排程</h3></div>
+              <div id="dashboard-upcoming-vacuum"></div>
+            </div>
+            <div class="panel p-4 xl:p-4">
+              <div class="panel-header"><h3 class="text-xl font-bold text-ink">近期真空式燒結排程</h3></div>
+              <div id="dashboard-upcoming-sintering"></div>
+            </div>
+            <div class="panel p-4 xl:p-4">
+              <div class="panel-header"><h3 class="text-xl font-bold text-ink">最近浸泡式脫脂投入</h3></div>
+              <div id="dashboard-recent-degreasing"></div>
+            </div>
+          </div>
+        </section>
+
+        <section data-view-panel="machines" class="hidden space-y-4">
+          <div class="panel p-4 xl:p-4">
+            <div class="panel-header">
+              <div>
+                <h2 class="text-2xl font-black text-ink">設備設定</h2>
+                <p class="text-sm text-slate">真空爐使用前 / 後雙面位置模型，預設每層位置數為 2。</p>
+              </div>
+            </div>
+            <form id="machine-form" class="product-form-compact mt-4">
+              <div class="product-master-form-grid items-start">
+                <label class="field"><span class="label">設備類型</span><select id="machine-machine-type" class="select" name="machine_type"><option value="degreasing_immersion">浸泡式脫脂設備</option><option value="degreasing_reserved">真空式脫脂設備</option><option value="sintering_furnace">真空式燒結爐</option></select></label>
+                <label class="field"><span class="label">設備編號</span><input class="input" name="machine_code" required></label>
+                <label class="field"><span class="label">設備名稱</span><input class="input" name="machine_name" required></label>
+                <label class="field"><span class="label">狀態</span><select class="select" name="status"><option value="active">啟用</option><option value="inactive">停用</option><option value="maintenance">維護中</option></select></label>
+                <label id="machine-solvent-fields" class="field"><span class="label">溶劑更換門檻 (kg)</span><input class="input" type="number" step="0.1" min="0" name="solvent_weight_limit" value="1000"></label>
+                <label id="machine-temperature-fields" class="field"><span class="label">標準溫度 (°C)</span><input class="input" type="number" step="0.1" name="standard_temperature" value="0"></label>
+                <label class="field"><span class="label">備註</span><textarea class="textarea" name="notes" rows="1"></textarea></label>
+              </div>
+              <div id="machine-structure-fields" class="hidden mt-4">
+                <div class="subtle-card">
+                  <p id="machine-structure-title" class="text-sm font-semibold text-ink mb-3">真空設備結構設定</p>
+                  <div class="product-master-form-grid items-start">
+                    <label class="field"><span class="label">層數</span><input class="input" type="number" min="1" name="total_layers" value="8"></label>
+                    <label class="field"><span class="label">總高度 (mm)</span><input class="input" type="number" step="0.1" min="0" name="total_inner_height" value="960"></label>
+                    <label class="field"><span class="label">有效寬度 (mm)</span><input class="input" type="number" step="0.1" min="0" name="effective_width" value="600"></label>
+                    <label class="field"><span class="label">有效深度 (mm)</span><input class="input" type="number" step="0.1" min="0" name="effective_depth" value="500"></label>
+                    <label class="field"><span class="label">基礎層高 (mm)</span><input class="input" type="number" step="0.1" min="0" name="base_layer_gap" value="120"></label>
+                    <label class="field"><span class="label">每層位置數</span><input class="input" type="number" min="1" step="1" name="positions_per_layer" value="2"></label>
+                    <label class="field"><span class="label">可調整高度 (mm)</span><input class="input" type="number" step="0.1" min="0" name="gap_max_extra" value="20"></label>
+                  </div>
+                </div>
+              </div>
+              <div class="flex flex-wrap items-center gap-4 mt-4">
+                <div><h3 id="machine-form-title" class="text-lg font-bold text-ink">新增設備</h3></div>
+                <div class="flex gap-3"><button type="submit" class="btn-primary">新增設備</button><button id="machine-form-reset" type="button" class="btn-secondary">清除表單</button></div>
+              </div>
+            </form>
+          </div>
+          <div class="panel p-4 xl:p-4"><div class="panel-header"><h3 class="text-xl font-bold text-ink">浸泡式脫脂設備列表</h3></div><div id="machines-immersion-table"></div></div>
+          <div class="panel p-4 xl:p-4"><div class="panel-header"><h3 class="text-xl font-bold text-ink">真空式脫脂設備列表</h3></div><div id="machines-vacuum-table"></div></div>
+          <div class="panel p-4 xl:p-4"><div class="panel-header"><h3 class="text-xl font-bold text-ink">真空式燒結爐列表</h3></div><div id="machines-furnace-table"></div></div>
+        </section>
+
+        <section data-view-panel="degreasing" class="hidden space-y-4">
+          <div class="panel p-4 xl:p-4">
+            <div class="panel-header"><div><h2 class="text-2xl font-black text-ink">浸泡式脫脂投入作業</h2><p class="text-sm text-slate">請先選擇設備卡片後，再來填寫投入作業資料。</p></div></div>
+            
+            <div class="toolbar-row mt-4">
+              <div><h3 class="text-lg font-bold text-ink">設備多選卡片</h3></div>
+              <div class="flex flex-wrap items-center gap-2">
+                <div id="degreasing-selection-summary" class="flex flex-wrap gap-2"></div>
+                <button id="degreasing-select-alerts" type="button" class="btn-secondary text-xs">選取警示設備</button>
+                <button id="degreasing-select-all" type="button" class="btn-secondary text-xs">全選</button>
+                <button id="degreasing-clear-selection" type="button" class="btn-secondary text-xs">清除選取</button>
+              </div>
+            </div>
+            <div id="degreasing-machine-cards" class="device-grid mt-3 mb-6"></div>
+
+            <div class="mt-6 border-t border-slate-100 pt-5">
+              <div id="degreasing-machine-info"></div>
+              <form id="degreasing-form" class="product-form-compact mt-4">
+                <div class="product-master-form-grid items-start">
+                  <label class="field"><span class="label">作業人員</span><input class="input" name="operator_name" required></label>
+                  <label class="field"><span class="label">作業時間</span><input class="input" type="datetime-local" name="operated_at" required></label>
+                  <label class="field"><span class="label">預計結束時間</span><input class="input" type="datetime-local" name="ended_at"></label>
+                  <label class="field"><span class="label">備註</span><input class="input" name="notes"></label>
+                  <label class="field hidden"><span class="label">批號 (隱藏支援舊相容)</span><input class="input" name="batch_no"></label>
+                </div>
+
+                <div class="mt-6 rounded-lg border border-slate-200 bg-white">
+                  <div class="flex items-center justify-between border-b border-slate-100 p-3 bg-slate-50 rounded-t-lg">
+                    <h4 class="font-bold text-ink">脫脂品項</h4>
+                    <button id="degreasing-add-item" type="button" class="btn-secondary text-xs">+ 新增品項</button>
+                  </div>
+                  <div class="p-3">
+                    <div id="degreasing-items" class="grid gap-3"></div>
+                  </div>
+                </div>
+
+                <div class="mt-5 border-t border-slate-100 pt-5"><button type="submit" class="btn-primary w-full xl:w-auto">建立投入紀錄</button></div>
+              </form>
+            </div>
+          </div>
+          <div class="panel p-4 xl:p-4"><div class="panel-header"><h3 class="text-xl font-bold text-ink">最近投入紀錄</h3></div><div id="degreasing-batches-table"></div></div>
+        </section>
+
+        <section data-view-panel="solvent" class="hidden space-y-4">
+          <div class="panel p-4 xl:p-4">
+            <div class="panel-header"><div><h2 class="text-2xl font-black text-ink">溶劑更換管理</h2><p class="text-sm text-slate">請先選擇設備卡片後，再來填寫更換作業資料。</p></div></div>
+            
+            <div class="toolbar-row mt-4">
+              <div><h3 class="text-lg font-bold text-ink">設備多選卡片</h3></div>
+              <div class="flex flex-wrap items-center gap-2">
+                <div id="solvent-selection-summary" class="flex flex-wrap gap-2"></div>
+                <button id="solvent-select-alerts" type="button" class="btn-secondary text-xs">選取待更換設備</button>
+                <button id="solvent-select-all" type="button" class="btn-secondary text-xs">全選</button>
+                <button id="solvent-clear-selection" type="button" class="btn-secondary text-xs">清除選取</button>
+              </div>
+            </div>
+            <div id="solvent-machine-cards" class="device-grid mt-3 mb-6"></div>
+
+            <div class="mt-6 border-t border-slate-100 pt-5">
+              <div id="solvent-machine-status"></div>
+              <form id="solvent-form" class="product-form-compact mt-4">
+                <div class="product-master-form-grid items-start">
+                  <label class="field"><span class="label">更換時間</span><input class="input" type="datetime-local" name="changed_at" required></label>
+                  <label class="field"><span class="label">更換人員</span><input class="input" name="operator_name" required></label>
+                  <label class="field"><span class="label">備註</span><textarea class="textarea" name="notes" rows="1"></textarea></label>
+                </div>
+                <div class="mt-4"><button type="submit" class="btn-danger w-full xl:w-auto">執行溶劑更換</button></div>
+              </form>
+            </div>
+          </div>
+          <div class="panel p-4 xl:p-4"><div class="panel-header"><h3 class="text-xl font-bold text-ink">最近更換紀錄</h3></div><div id="solvent-changes-table"></div></div>
+        </section>
+
+        <section data-view-panel="vacuum" class="hidden space-y-4">
+          <div class="panel p-4 xl:p-4">
+            <div class="panel-header"><div><h2 class="text-2xl font-black text-ink">真空式脫脂作業</h2><p class="text-sm text-slate">請先選擇真空式脫脂爐後，再來填寫排程與品項資料。</p></div></div>
+            
+            <div class="toolbar-row mt-4">
+              <div><h3 class="text-lg font-bold text-ink">真空式脫脂爐選取</h3></div>
+            </div>
+            <div id="vacuum-machine-cards" class="device-grid mt-3 mb-6"></div>
+
+            <div class="operation-guide">
+              <p class="operation-guide-title">操作說明：真空式脫脂高度計算</p>
+              <ul class="operation-guide-list">
+                <li>需求高度會用來比對爐內每層可用高度，公式為單件高度 + 作業標準治具高度 + 墊塊總高度覆寫值。</li>
+                <li>單件高度預設帶入作業標準的產品高度，可依批次品項改寫；此值不含任何治具。</li>
+                <li>墊塊總高度不含產品本身高度。有填寫時，系統會以此值取代作業標準中的墊塊 / 隔離類治具高度，避免重複計算。</li>
+                <li>單盤容量只影響盤數與位置，不直接增加單層需求高度。</li>
+              </ul>
+              <p class="operation-guide-example">例：產品 10 mm、托盤 3 mm、墊塊 5 mm。未填墊塊總高度為 18 mm；若填 6 mm，需求高度為 19 mm。</p>
+            </div>
+
+            <div class="mt-6 border-t border-slate-100 pt-5">
+              <div id="vacuum-machine-info" class="space-y-4 mb-4"></div>
+              <form id="vacuum-form" class="product-form-compact mt-4">
+                <input type="hidden" name="vacuum_machine_id">
+                <div class="product-master-form-grid items-start">
+                  <label class="field"><span class="label">批次號</span><input class="input" name="batch_no" required></label>
+                  <label class="field"><span class="label">計畫日期</span><input class="input" type="date" name="planned_date" required></label>
+                  <label class="field"><span class="label">作業人員</span><input class="input" name="operator_name" required></label>
+                  <label class="field"><span class="label">批次狀態</span><select class="select" name="status"><option value="planned">已排程</option><option value="draft">草稿</option><option value="ready">可執行</option><option value="completed">已完成</option></select></label>
+                </div>
+                <div class="mt-4 space-y-3"><div class="flex items-center justify-between"><p class="text-sm font-semibold text-ink">真空式脫脂品項</p><button id="vacuum-add-item" type="button" class="btn-secondary text-xs">新增品項</button></div><div id="vacuum-items" class="space-y-3"></div></div>
+                <div class="product-master-form-grid items-start mt-4">
+                  <label class="field"><span class="label">備註</span><textarea class="textarea" name="notes" rows="1"></textarea></label>
+                </div>
+                <div class="flex flex-wrap gap-3 mt-4"><button id="vacuum-calculate" type="button" class="btn-secondary">排盤試算</button><button type="submit" class="btn-primary">建立批次</button><button id="vacuum-form-reset" type="button" class="btn-secondary">清除表單</button></div>
+              </form>
+            </div>
+          </div>
+          <div class="grid gap-4 xl:gap-4 xl:grid-cols-[1.1fr,1fr]"><div class="panel p-4 xl:p-4"><div class="panel-header"><h3 class="text-xl font-bold text-ink">推薦結果</h3></div><div id="vacuum-recommendations"></div></div><div class="panel p-4 xl:p-4"><div class="panel-header"><h3 class="text-xl font-bold text-ink">推薦細節</h3></div><div id="vacuum-recommendation-detail"></div></div></div>
+          <div class="panel p-4 xl:p-4"><div class="panel-header"><h3 class="text-xl font-bold text-ink">真空式脫脂批次</h3></div><div id="vacuum-batches-table"></div></div>
+        </section>
+
+        <section data-view-panel="products" class="hidden product-page-stack">
+          <div class="panel product-panel">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <div class="product-subnav">
+                <button type="button" class="product-subtab product-subtab-active" data-product-subview-target="masters">產品資料</button>
+                <button type="button" class="product-subtab" data-product-subview-target="specs">作業標準</button>
+                <button type="button" class="product-subtab" data-product-subview-target="support-blocks">治具與對應標準</button>
+              </div>
+              <button id="product-overview-toggle" type="button" class="btn-secondary text-xs">展開說明</button>
+            </div>
+            <div id="product-overview-content" class="hidden space-y-3 mt-4 border-t border-slate-100 pt-4">
+              <p class="text-sm text-slate">產品主檔預留給 ERP 同步基本資料，製程規格維持由現場管理脫脂 / 真空 / 燒結條件與治具設定。</p>
+              <div class="product-overview-grid">
+                <div class="product-overview-tile">
+                  <p class="text-xs uppercase tracking-wide text-slate">ERP 規劃</p>
+                  <p class="mt-2 text-sm font-semibold text-ink">先接產品主檔，再接工單 / 派工 / 完工回傳。</p>
+                </div>
+                <div class="product-overview-tile">
+                  <p class="text-xs uppercase tracking-wide text-slate">主檔角色</p>
+                  <p class="mt-2 text-sm font-semibold text-ink">產品代碼、名稱、ERP 對應編號、版次與同步狀態。</p>
+                </div>
+                <div class="product-overview-tile">
+                  <p class="text-xs uppercase tracking-wide text-slate">規格角色</p>
+                  <p class="mt-2 text-sm font-semibold text-ink">產品高度、治具、混裝條件、設備偏好與製程版次。</p>
+                </div>
+              </div>
+              <div class="operation-guide">
+                <p class="operation-guide-title">操作說明：高度計算規則</p>
+                <ul class="operation-guide-list">
+                  <li>作業標準的「產品高度」只代表產品本身高度，不含托盤、墊塊或其他治具。</li>
+                  <li>作業標準內「使用的製程治具清單」會在真空式脫脂與真空式燒結排盤時自動加總，計算方式為治具高度 x 數量。</li>
+                  <li>製程治具對應表只影響墊塊推薦、可用或限制提示，不會單獨增加高度。</li>
+                </ul>
+                <p class="operation-guide-example">例：產品 10 mm，作業標準加入托盤 3 mm 與墊塊 5 mm，批次未覆寫時需求高度為 18 mm。</p>
+              </div>
+            </div>
+          </div>
+
+          <div data-product-subview-panel="masters" class="product-subview-stack">
+            <div class="panel product-panel">
+              <div class="panel-header flex flex-wrap items-center justify-between border-b border-slate-100 pb-4 mb-4">
+                <div>
+                  <h2 id="product-master-form-title" class="text-xl font-black text-ink">產品資料設定</h2>
+                  <p class="text-sm text-slate">這裡放 ERP 或內部共同使用的產品基本資料。</p>
+                </div>
+                <button id="product-master-search-modal-btn" type="button" class="btn-primary">🔍 搜尋產品資料</button>
+              </div>
+              <form id="product-master-form" class="product-form-compact">
+                <div class="product-master-form-grid">
+                  <label class="field"><span class="label">產品代碼</span><input class="input" name="product_code" required></label>
+                  <label class="field"><span class="label">產品名稱</span><input class="input" name="product_name" required></label>
+                  <label class="field"><span class="label">ERP 料號</span><input class="input" name="erp_item_code"></label>
+                  <label class="field"><span class="label">ERP 產品 ID</span><input class="input" name="erp_item_id"></label>
+                  <label class="field"><span class="label">主檔版次</span><input class="input" name="revision" placeholder="例如 A0 / R01"></label>
+                  <label class="field"><span class="label">資料來源</span><select class="select" name="source_system"><option value="local">本地建立</option><option value="erp">ERP 同步</option><option value="hybrid">混合維護</option></select></label>
+                  <label class="field"><span class="label">同步狀態</span><select class="select" name="sync_status"><option value="local_only">僅本地</option><option value="pending_sync">待同步</option><option value="synced">已同步</option><option value="stale">待更新</option><option value="sync_error">同步異常</option></select></label>
+                  <label class="field"><span class="label">備註</span><textarea class="textarea" name="notes" rows="1"></textarea></label>
+                </div>
+                <div class="mt-8 flex justify-end gap-3 pt-4 border-t border-slate-100">
+                  <button id="product-master-form-reset" type="button" class="btn-secondary">清空並進入新增模式</button>
+                  <button type="submit" class="btn-primary">儲存產品主檔</button>
+                </div>
+              </form>
+            </div>
+
+            <!-- Option A: Search Modal -->
+            <div id="product-search-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm hidden p-4">
+              <div class="bg-white rounded-xl shadow-2xl w-full max-w-5xl flex flex-col overflow-hidden max-h-[90vh]">
+                <div class="px-6 py-5 border-b border-slate-100 flex justify-between items-center shrink-0">
+                  <div>
+                    <h3 class="text-xl font-bold text-ink">搜尋產品資料</h3>
+                    <p class="text-sm text-slate">請根據下列條件篩選並按下確認搜尋。</p>
+                  </div>
+                  <button id="product-search-modal-close" type="button" class="text-slate-400 hover:text-ink text-3xl leading-none">&times;</button>
+                </div>
+                <div class="p-6 overflow-y-auto flex-1 space-y-4 bg-slate-50">
+                  <div class="bg-white p-4 rounded-lg shadow-sm border border-slate-100 space-y-4">
+                    <div class="product-master-form-grid items-end">
+                      <label class="field"><span class="label">產品代碼</span><input id="search-product-code" class="input"></label>
+                      <label class="field"><span class="label">產品名稱</span><input id="search-product-name" class="input"></label>
+                      <label class="field"><span class="label">ERP 料號</span><input id="search-erp-item-code" class="input"></label>
+                      <label class="field"><span class="label">ERP 產品 ID</span><input id="search-erp-item-id" class="input"></label>
+                      <label class="field"><span class="label">版次</span><input id="search-revision" class="input"></label>
+                      <label class="field"><span class="label">規格筆數</span><input id="search-spec-count" type="number" class="input"></label>
+                      <label class="field"><span class="label">狀態</span><select id="search-status" class="select"><option value="all">全部狀態</option><option value="active">僅啟用中</option><option value="inactive">停用</option><option value="archived">封存</option></select></label>
+                      <label class="field"><span class="label">同步狀態</span><select id="search-sync-status" class="select"><option value="all">全部狀態</option><option value="local_only">僅本地</option><option value="pending_sync">待同步</option><option value="synced">已同步</option><option value="stale">待更新</option><option value="sync_error">同步異常</option></select></label>
+                      <label class="field"><span class="label">更新時間 (起)</span><input id="search-updated-at" type="date" class="input"></label>
+                      <select id="product-master-page-size" class="select hidden"><option value="25">25</option></select>
+                    </div>
+                    <div class="flex items-center justify-between border-t border-slate-100 pt-4 mt-2">
+                       <p id="product-master-result-count" class="product-result-count">共 0 筆</p>
+                       <div class="flex gap-2">
+                         <button id="product-master-filter-clear" type="button" class="btn-secondary">清除條件</button>
+                         <button id="product-master-search-confirm" type="button" class="btn-primary">確認搜尋</button>
+                       </div>
+                    </div>
+                  </div>
+                  <div class="bg-white rounded-lg shadow-sm border border-slate-100 overflow-hidden">
+                    <div id="product-masters-table"></div>
+                  </div>
+                  <div id="product-masters-pagination" class="flex justify-end mt-2"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div data-product-subview-panel="specs" class="product-subview-stack hidden">
+            <div class="panel product-panel">
+              <div class="panel-header flex flex-wrap items-center justify-between border-b border-slate-100 pb-4 mb-4">
+                <div>
+                  <h2 id="product-spec-form-title" class="text-xl font-black text-ink">作業標準設定</h2>
+                  <p class="text-sm text-slate">目前系統使用的產品條件、治具與排盤規則都放在這裡。</p>
+                </div>
+                <button id="product-spec-search-modal-btn" type="button" class="btn-primary">🔍 搜尋製程規格</button>
+              </div>
+              <div id="product-spec-master-summary" class="mb-3"></div>
+              <div class="operation-guide mb-4">
+                <p class="operation-guide-title">操作說明：作業標準如何影響真空排盤</p>
+                <ul class="operation-guide-list">
+                  <li>「產品高度」是產品本身高度，會成為真空式脫脂與真空式燒結品項的單件高度預設值。</li>
+                  <li>「使用的製程治具清單」內每一筆治具都會以高度 x 數量自動加入需求高度。</li>
+                  <li>若批次頁面另外填寫「墊塊總高度」，該值不含產品高度，並會覆寫作業標準中的墊塊 / 隔離類治具高度。</li>
+                </ul>
+                <p class="operation-guide-example">例：產品 10 mm、托盤 3 mm、墊塊 5 mm，批次未覆寫時需求高度為 10 + 3 + 5 = 18 mm。</p>
+              </div>
+              <form id="product-spec-form" class="product-form-compact">
+                <div class="product-spec-form-grid items-start">
+                  <label class="field"><span class="label">對應產品資料</span><select id="product-spec-master-id" class="select" name="product_master_id"></select></label>
+                  <label class="field"><span class="label">作業標準代碼</span><input class="input" name="spec_code" required></label>
+                  <label class="field"><span class="label">作業標準名稱</span><input class="input" name="spec_name" required></label>
+                  <label class="field"><span class="label">製程版次</span><input class="input" name="process_revision"></label>
+                  
+                  <label class="field"><span class="label label-with-help">產品高度 (mm)<span class="help-icon" tabindex="0" aria-label="產品高度說明" data-tooltip="只代表產品本身高度，不含托盤、墊塊或其他治具；真空作業品項的單件高度會預設帶入此值。">?</span></span><input class="input" type="number" step="0.1" min="0" name="product_height" required></label>
+                  <label class="field"><span class="label label-with-help">單盤容量 (pcs)<span class="help-icon" tabindex="0" aria-label="單盤容量說明" data-tooltip="用來換算盤數與排盤位置，不會直接加入單層需求高度。">?</span></span><input class="input" type="number" min="1" name="tray_capacity" required></label>
+                  
+                  <div class="field col-span-full xl:col-span-8 pt-2">
+                    <div class="flex items-center justify-between mb-2 border-b border-slate-100 pb-2">
+                      <span class="label label-with-help !mb-0 font-semibold text-ink">使用的製程治具清單<span class="help-icon" tabindex="0" aria-label="使用的製程治具清單說明" data-tooltip="清單內治具會以高度 x 數量自動納入真空式脫脂與真空式燒結高度計算；批次若填墊塊總高度，墊塊 / 隔離類會改用該覆寫值。">?</span></span>
+                      <button id="product-spec-add-fixture-btn" type="button" class="btn-secondary text-xs">+ 新增治具</button>
+                    </div>
+                    <div id="product-spec-fixtures-list" class="grid gap-2"></div>
+                  </div>
+                  
+                  <label class="field"><span class="label">推薦設備關鍵字</span><input class="input" name="preferred_furnace_type"></label>
+                  
+                  <label class="field"><span class="label">備註</span><textarea class="textarea" name="notes" rows="1"></textarea></label>
+                  <div class="field pt-6">
+                    <label class="product-inline-toggle inline-flex"><input class="h-4 w-4" type="checkbox" name="can_mix_load"><span class="ml-2">允許混裝</span></label>
+                  </div>
+                </div>
+                <div class="mt-8 flex justify-end gap-3 pt-4 border-t border-slate-100">
+                  <button id="product-spec-form-reset" type="button" class="btn-secondary">清空並進入新增模式</button>
+                  <button type="submit" class="btn-primary">儲存製程規格</button>
+                </div>
+              </form>
+            </div>
+
+            <!-- Option A: Spec Search Modal -->
+            <div id="product-spec-search-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm hidden p-4">
+              <div class="bg-white rounded-xl shadow-2xl w-full max-w-5xl flex flex-col overflow-hidden max-h-[90vh]">
+                <div class="px-6 py-5 border-b border-slate-100 flex justify-between items-center shrink-0">
+                  <div>
+                    <h3 class="text-xl font-bold text-ink">搜尋製程規格</h3>
+                    <p class="text-sm text-slate">請根據下列條件篩選並按下確認搜尋。</p>
+                  </div>
+                  <button id="product-spec-search-modal-close" type="button" class="text-slate-400 hover:text-ink text-3xl leading-none">&times;</button>
+                </div>
+                <div class="p-6 overflow-y-auto flex-1 space-y-4 bg-slate-50">
+                  <div class="bg-white p-4 rounded-lg shadow-sm border border-slate-100 space-y-4">
+                    <div class="product-spec-form-grid items-end">
+                      <label class="field"><span class="label">產品資料</span><select id="search-spec-master-id" class="select"></select></label>
+                      <label class="field"><span class="label">規格代碼</span><input id="search-spec-code" class="input"></label>
+                      <label class="field"><span class="label">規格名稱</span><input id="search-spec-name" class="input"></label>
+                      <label class="field"><span class="label">狀態</span><select id="search-spec-status" class="select"><option value="all">全部狀態</option><option value="active">僅啟用中</option><option value="inactive">停用</option><option value="archived">封存</option></select></label>
+                      <select id="product-spec-page-size" class="select hidden"><option value="25">25</option></select>
+                    </div>
+                    <div class="flex items-center justify-between border-t border-slate-100 pt-4 mt-2">
+                       <p id="product-spec-result-count" class="product-result-count">共 0 筆</p>
+                       <div class="flex gap-2">
+                         <button id="product-spec-filter-clear" type="button" class="btn-secondary">清除條件</button>
+                         <button id="product-spec-search-confirm" type="button" class="btn-primary">確認搜尋</button>
+                       </div>
+                    </div>
+                  </div>
+                  <div class="bg-white rounded-lg shadow-sm border border-slate-100 overflow-hidden">
+                    <div id="products-table"></div>
+                  </div>
+                  <div id="products-pagination" class="flex justify-end mt-2"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div data-product-subview-panel="support-blocks" class="product-subview-stack hidden">
+            <div class="panel product-panel">
+              <div class="panel-header flex flex-wrap items-center justify-between border-b border-slate-100 pb-4 mb-4">
+                <div>
+                  <h2 id="support-block-form-title" class="text-xl font-black text-ink">新增治具</h2>
+                  <p class="text-sm text-slate">統一管理托盤、墊塊、陶瓷治具與墊腳支架。</p>
+                </div>
+                <button id="support-block-search-modal-btn" type="button" class="btn-primary">🔍 搜尋治具主檔</button>
+              </div>
+              <form id="support-block-form" class="product-form-compact mt-4">
+                <div class="fixture-form-grid items-start">
+                  <!-- Row 1: 7 fields -->
+                  <label class="field"><span class="label">治具材質</span>
+                    <div data-dynamic-field="fixture_quick_type">
+                      <select class="select" name="fixture_quick_type_select" required>
+                        <option value="">請選擇治具材質</option>
+                        <option value="graphite">石墨</option>
+                        <option value="ceramic">陶瓷</option>
+                        <option value="stainless_steel">不鏽鋼</option>
+                        <option value="metal_powder">金屬粉</option>
+                        <option value="other">其他 (手動輸入)</option>
+                      </select>
+                      <div class="hidden relative">
+                        <input class="input pr-8" name="fixture_quick_type_input" placeholder="手動輸入材質">
+                        <button type="button" class="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-slate-400" data-dynamic-reset>✕</button>
+                      </div>
+                    </div>
+                  </label>
+                  
+                  <label class="field"><span class="label">治具形狀規格</span><input class="input" name="shape_type" placeholder="例如 10mm 圓環"></label>
+                  
+                  <label class="field"><span class="label label-with-help">用途<span class="help-icon" tabindex="0" aria-label="治具用途說明" data-tooltip="用途會影響批次覆寫邏輯。承載、支撐等治具在作業標準中會加總高度；墊高 / 隔離類若批次填墊塊總高度，會改用覆寫值。">?</span></span>
+                    <div data-dynamic-field="fixture_type">
+                      <select class="select" name="fixture_type_select" required>
+                        <option value="">請選擇用途</option>
+                        <option value="tray">承載</option>
+                        <option value="isolate">隔離</option>
+                        <option value="support_block">墊高</option>
+                        <option value="foot">支撐</option>
+                        <option value="other">其他 (手動輸入)</option>
+                      </select>
+                      <div class="hidden relative">
+                        <input class="input pr-8" name="fixture_type_input" placeholder="手動輸入用途">
+                        <button type="button" class="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-slate-400" data-dynamic-reset>✕</button>
+                      </div>
+                    </div>
+                  </label>
+                  
+                  <label class="field"><span class="label label-with-help">高度 (mm)<span class="help-icon" tabindex="0" aria-label="治具高度說明" data-tooltip="治具被加入作業標準的使用清單後，會以此高度乘上數量納入真空作業需求高度。">?</span></span><input class="input" type="number" step="0.1" min="0" name="height" required></label>
+                  <label class="field"><span class="label">寬度 (mm)</span><input class="input" type="number" step="0.1" min="0" name="width"></label>
+                  <label class="field"><span class="label">長度 (mm)</span><input class="input" type="number" step="0.1" min="0" name="length"></label>
+                  <label class="field"><span class="label">最大堆疊數</span><input class="input" type="number" min="1" step="1" name="max_stack_count"></label>
+                  
+                  <!-- Row 2: 4 fields (starts on a new row automatically in 7-col grid) -->
+                  <label class="field"><span class="label">治具編號</span><input class="input" name="block_code" placeholder="例如 JIG-CT-001" required></label>
+                  <label class="field"><span class="label">治具名稱</span><input class="input" name="block_name" placeholder="例如 10mm 陶瓷墊圈" required></label>
+                  <label class="field"><span class="label">狀態</span><select class="select" name="status" required><option value="">請選擇狀態</option><option value="active">啟用</option><option value="inactive">停用</option></select></label>
+                  <label class="field col-span-4"><span class="label">備註</span><input class="input" name="notes"></label>
+                </div>
+                <div class="operation-guide mt-4">
+                  <p class="operation-guide-title">操作說明：治具用途與高度</p>
+                  <ul class="operation-guide-list">
+                    <li>治具主檔只定義用途與尺寸；必須加入作業標準的「使用的製程治具清單」後，才會自動納入真空式脫脂 / 燒結高度計算。</li>
+                    <li>製程治具對應表用來提示墊塊是否推薦、可用或限制，不會單獨增加高度。</li>
+                    <li>批次頁面若填寫「墊塊總高度」，該值不含產品高度，並會覆寫墊塊 / 隔離類治具的自動高度。</li>
+                  </ul>
+                  <p class="operation-guide-example">例：治具高度 5 mm、作業標準數量 2，預設加入 10 mm；若批次墊塊總高度填 6 mm，墊塊 / 隔離類改用 6 mm。</p>
+                </div>
+                <div class="flex flex-wrap gap-3 mt-4"><button id="support-block-form-reset" type="button" class="btn-secondary">清空並進入新增模式</button><button type="submit" class="btn-primary">儲存治具</button></div>
+              </form>
+            </div>
+            
+            <div class="panel p-4 xl:p-4 mt-4">
+              <div class="toolbar-row">
+                <div><h3 class="text-xl font-black text-ink">製程治具對應表</h3></div>
+                <div class="flex flex-wrap gap-3"><button id="support-rule-reset" type="button" class="btn-secondary">還原已儲存規則</button><button id="support-rule-clear" type="button" class="btn-secondary">清空草稿</button><button id="support-rule-save" type="button" class="btn-primary">儲存規則</button></div>
+              </div>
+              <div class="operation-guide mt-4">
+                <p class="operation-guide-title">操作說明：對應表與高度的關係</p>
+                <ul class="operation-guide-list">
+                  <li>對應表只控制指定作業標準可選用哪些墊塊，以及推薦 / 可用 / 限制狀態。</li>
+                  <li>對應表本身不會把治具高度加進批次；高度來源仍是作業標準的使用清單，或批次品項填寫的墊塊總高度。</li>
+                </ul>
+              </div>
+              <div class="mt-6 grid gap-4 xl:gap-4 xl:grid-cols-[420px,1fr]">
+                <div class="space-y-4"><label class="field"><span class="label label-with-help">選擇作業標準<span class="help-icon" tabindex="0" aria-label="選擇作業標準說明" data-tooltip="這裡只設定該作業標準可用或推薦的墊塊規則；不會直接改變高度計算。">?</span></span><select id="support-rule-product-select" class="select"></select></label><div id="support-rule-product-summary"></div></div>
+                <div id="support-rule-grid"></div>
+              </div>
+            </div>
+
+            <div id="support-block-search-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm hidden p-4">
+              <div class="bg-white rounded-xl shadow-2xl w-full max-w-5xl flex flex-col overflow-hidden max-h-[90vh]">
+                <div class="px-6 py-5 border-b border-slate-100 flex justify-between items-center shrink-0">
+                  <div>
+                    <h3 class="text-xl font-bold text-ink">搜尋治具主檔</h3>
+                    <p class="mt-1 text-sm text-slate">請設定條件後開始搜尋。</p>
+                  </div>
+                  <button id="support-block-search-modal-close" type="button" class="p-2 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-ink transition">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"></path></svg>
+                  </button>
+                </div>
+                <div class="p-6 overflow-y-auto flex-1 space-y-4 bg-slate-50">
+                  <div class="bg-white p-4 rounded-lg shadow-sm border border-slate-100 space-y-4">
+                    <div class="product-master-form-grid items-end">
+                      <label class="field"><span class="label">治具編號</span><input id="search-support-block-code" class="input"></label>
+                      <label class="field"><span class="label">治具名稱</span><input id="search-support-block-name" class="input"></label>
+                      <label class="field"><span class="label">治具材質</span><select id="search-support-block-type" class="select"><option value="all">全部</option><option value="graphite">石墨</option><option value="ceramic">陶瓷</option><option value="stainless_steel">不鏽鋼</option><option value="metal_powder">金屬粉</option><option value="other">其他</option></select></label>
+                      <label class="field"><span class="label">用途</span><select id="search-support-block-usage" class="select"><option value="all">全部</option><option value="tray">承載</option><option value="isolate">隔離</option><option value="support_block">墊高</option><option value="foot">支撐</option><option value="other">其他</option></select></label>
+                      <label class="field"><span class="label">狀態</span><select id="search-support-block-status" class="select"><option value="all">全部狀態</option><option value="active">僅啟用中</option><option value="inactive">停用</option></select></label>
+                    </div>
+                    <div class="flex items-center justify-between border-t border-slate-100 pt-4 mt-2">
+                      <p id="support-block-result-count" class="product-result-count">請設定條件並開始搜尋</p>
+                      <div class="flex gap-2">
+                        <button id="support-block-filter-clear" type="button" class="btn-secondary">清除條件</button>
+                        <button id="support-block-search-confirm" type="button" class="btn-primary px-6">確認搜尋</button>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="bg-white rounded-lg shadow-sm border border-slate-100 overflow-hidden">
+                    <div id="support-blocks-table"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section data-view-panel="sintering" class="hidden space-y-4">
+          <div class="panel p-4 xl:p-4">
+            <div class="panel-header"><div><h2 class="text-2xl font-black text-ink">真空式燒結作業</h2><p class="text-sm text-slate">請先選擇真空式燒結爐後，再來填寫排程與品項資料。</p></div></div>
+            
+            <div class="toolbar-row mt-4">
+              <div><h3 class="text-lg font-bold text-ink">真空式燒結爐選取</h3></div>
+            </div>
+            <div id="sintering-machine-cards" class="device-grid mt-3 mb-6"></div>
+
+            <div class="operation-guide">
+              <p class="operation-guide-title">操作說明：真空式燒結高度計算</p>
+              <ul class="operation-guide-list">
+                <li>需求高度會用來比對爐內每層可用高度，公式為單件高度 + 作業標準治具高度 + 墊塊總高度覆寫值。</li>
+                <li>單件高度預設帶入作業標準的產品高度，可依批次品項改寫；此值不含任何治具。</li>
+                <li>墊塊總高度不含產品本身高度。有填寫時，系統會以此值取代作業標準中的墊塊 / 隔離類治具高度，避免重複計算。</li>
+                <li>單盤容量只影響盤數與位置，不直接增加單層需求高度。</li>
+              </ul>
+              <p class="operation-guide-example">例：產品 10 mm、托盤 3 mm、墊塊 5 mm。未填墊塊總高度為 18 mm；若填 6 mm，需求高度為 19 mm。</p>
+            </div>
+
+            <div class="mt-6 border-t border-slate-100 pt-5">
+              <div id="sintering-machine-info" class="space-y-4 mb-4"></div>
+              <form id="sintering-form" class="product-form-compact mt-4">
+                <input type="hidden" name="furnace_machine_id">
+                <div class="product-master-form-grid items-start">
+                  <label class="field"><span class="label">批次號</span><input class="input" name="batch_no" required></label>
+                  <label class="field"><span class="label">計畫日期</span><input class="input" type="date" name="planned_date" required></label>
+                  <label class="field"><span class="label">作業人員</span><input class="input" name="operator_name" required></label>
+                  <label class="field"><span class="label">批次狀態</span><select class="select" name="status"><option value="planned">已排程</option><option value="draft">草稿</option><option value="ready">可執行</option><option value="completed">已完成</option></select></label>
+                </div>
+                <div class="mt-4 space-y-3"><div class="flex items-center justify-between"><p class="text-sm font-semibold text-ink">真空式燒結品項</p><button id="sintering-add-item" type="button" class="btn-secondary text-xs">新增品項</button></div><div id="sintering-items" class="space-y-3"></div></div>
+                <div class="product-master-form-grid items-start mt-4">
+                  <label class="field"><span class="label">備註</span><textarea class="textarea" name="notes" rows="1"></textarea></label>
+                </div>
+                <div class="flex flex-wrap gap-3 mt-4"><button id="sintering-calculate" type="button" class="btn-secondary">排盤試算</button><button type="submit" class="btn-primary">建立批次</button><button id="sintering-form-reset" type="button" class="btn-secondary">清除表單</button></div>
+              </form>
+            </div>
+          </div>
+          <div class="grid gap-4 xl:gap-4 xl:grid-cols-[1.1fr,1fr]"><div class="panel p-4 xl:p-4"><div class="panel-header"><h3 class="text-xl font-bold text-ink">推薦結果</h3></div><div id="sintering-recommendations"></div></div><div class="panel p-4 xl:p-4"><div class="panel-header"><h3 class="text-xl font-bold text-ink">推薦細節</h3></div><div id="sintering-recommendation-detail"></div></div></div>
+          <div class="panel p-4 xl:p-4"><div class="panel-header"><h3 class="text-xl font-bold text-ink">真空式燒結批次</h3></div><div id="sintering-batches-table"></div></div>
+        </section>
+
+        <section data-view-panel="reports" class="hidden space-y-4">
+          <div class="panel p-4 xl:p-4">
+            <div class="panel-header"><div><h2 class="text-2xl font-black text-ink">查詢報表</h2><p class="text-sm text-slate">依日期、設備、料號或批號查詢主要紀錄。</p></div></div>
+            <form id="report-form" class="product-form-compact mt-4">
+              <div class="product-master-form-grid items-start">
+                <label class="field"><span class="label">起始日期</span><input class="input" type="date" name="date_from"></label>
+                <label class="field"><span class="label">結束日期</span><input class="input" type="date" name="date_to"></label>
+                <label class="field"><span class="label">設備分類</span><select id="report-machine-type-filter" class="select" name="machine_type"><option value="">所有設備</option><option value="degreasing_immersion">浸泡式脫脂</option><option value="degreasing_reserved">真空式脫脂</option><option value="sintering_furnace">真空式燒結</option></select></label>
+                <label class="field"><span class="label">指定設備</span><select id="report-machine-filter" class="select" name="machine_id"></select></label>
+                <label class="field"><span class="label">料號</span><input class="input" name="part_no"></label>
+                <label class="field"><span class="label">批號 / 工單號</span><input class="input" name="batch_no"></label>
+              </div>
+              <div class="mt-4 flex flex-wrap gap-3"><button type="submit" class="btn-primary">查詢報表</button><button id="report-export-csv" type="button" class="btn-secondary">匯出 CSV</button><button id="report-export-excel" type="button" class="btn-secondary">匯出 EXCEL</button></div>
+            </form>
+          </div>
+          <div class="grid gap-4 xl:gap-4">
+            <div class="panel p-4 xl:p-4"><div class="panel-header"><h3 class="text-xl font-bold text-ink">浸泡式脫脂投入紀錄</h3></div><div id="report-degreasing-table"></div></div>
+            <div class="panel p-4 xl:p-4"><div class="panel-header"><h3 class="text-xl font-bold text-ink">溶劑更換紀錄</h3></div><div id="report-solvent-table"></div></div>
+            <div class="panel p-4 xl:p-4"><div class="panel-header"><h3 class="text-xl font-bold text-ink">真空式脫脂批次</h3></div><div id="report-vacuum-table"></div></div>
+            <div class="panel p-4 xl:p-4"><div class="panel-header"><h3 class="text-xl font-bold text-ink">真空式燒結批次</h3></div><div id="report-sintering-table"></div></div>
+          </div>
+        </section>
+
+        <section data-view-panel="settings" class="hidden space-y-4">
+          <div class="panel p-4 xl:p-4 border-l-4 border-l-pine">
+            <div class="panel-header"><div><h2 class="text-2xl font-black text-ink">系統管理與資安參數</h2><p class="text-sm text-slate">外部 API 串接與跨廠區安全存取控制</p></div></div>
+            <form id="settings-form" class="mt-6 max-w-2xl space-y-4">
+              <div class="subtle-card space-y-4">
+                <label class="product-inline-toggle">
+                  <input id="settings-api-enabled" class="h-4 w-4" type="checkbox" name="api_key_enabled">
+                  <span class="font-semibold text-ink">設定外部 API 金鑰保護 (建議開啟)</span>
+                </label>
+                <label id="settings-api-token-container" class="field"><span class="label">外部 API 授權金鑰 (Bearer Token 或 x-api-key)</span><input id="settings-api-token" type="password" class="input font-mono text-sm tracking-widest" name="api_key_token" placeholder="輸入長度超過 16 的隨機英數字或 UUID"></label>
+                <div class="text-xs text-slate opacity-80 space-y-1">
+                  <p>開啟金鑰將保護 <code>/api/*</code> 下的所有路由，攔截無效的存取請求。</p>
+                  <p>如果此選項關閉，同網域（WiFi）底下的任何人與程式皆可讀寫工廠參數。</p>
+                </div>
+              </div>
+
+              <div class="subtle-card mt-6 space-y-4">
+                <h3 class="font-bold text-ink">作業參數設定</h3>
+                <label class="field"><span class="label">浸泡式脫脂預設作業時長 (小時)</span><input id="settings-degreasing-time-offset" type="number" step="0.5" class="input" name="degreasing_time_offset" placeholder="例如: 8"></label>
+                <p class="text-xs text-slate opacity-80">設定後，每次在脫脂作業填寫「作業時間」時，會自動依照此時長推算「預計結束時間」。</p>
+              </div>
+              <div class="pt-2"><button type="submit" class="btn-primary">儲存設定</button></div>
+            </form>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div id="toast-root" class="fixed bottom-6 right-6 z-50 flex max-w-sm flex-col gap-3"></div>
+    <div id="modal-root" class="hidden"></div>
+
+    <script type="module" src="./renderer-scripts/app.js"></script>
+  </body>
+</html>

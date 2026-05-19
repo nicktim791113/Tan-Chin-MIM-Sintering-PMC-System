@@ -1,0 +1,66 @@
+{
+  "name": "tan-chin-mim-pmc-system",
+  "version": "1.1.0",
+  "description": "Offline-first Electron desktop system for degreasing and sintering process management.",
+  "author": "Tan Chin",
+  "main": "main.js",
+  "type": "commonjs",
+  "scripts": {
+    "build:web": "cd web-client && npm run build",
+    "build:css": "tailwindcss -i ./assets/css/input.css -o ./assets/css/tailwind.css --minify",
+    "prestart": "npm run build:css && npm run build:web",
+    "prebuild": "npm run build:web",
+    "start": "electron .",
+    "dev": "npm run build:css && electron .",
+    "server": "set ELECTRON_RUN_AS_NODE=1&& electron server.js",
+    "build": "npm run build:css && electron-builder",
+    "dist": "npm run build",
+    "postinstall": "electron-builder install-app-deps",
+    "seed": "electron seed.js",
+    "clear-db": "electron clear.js",
+    "publish": "npm run build:css && electron-builder --publish always"
+  },
+  "build": {
+    "appId": "com.tanchin.mimpmc",
+    "productName": "Tan Chin MIM PMC System",
+    "files": [
+      "assets/**/*",
+      "renderer-scripts/**/*",
+      "index.html",
+      "main.js",
+      "preload.js",
+      "server.js",
+      "database.js",
+      "package.json",
+      "web-client/dist/**/*"
+    ],
+    "directories": {
+      "buildResources": "assets",
+      "output": "dist"
+    },
+    "asar": true,
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "nicktim791113",
+      "repo": "Tan-Chin-MIM-Sintering-PMC-System"
+    }
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.10.0",
+    "cors": "^2.8.6",
+    "electron-log": "^5.4.0",
+    "electron-updater": "^6.4.1",
+    "express": "^4.21.2",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "electron": "^35.7.5",
+    "electron-builder": "^26.0.12",
+    "tailwindcss": "^3.4.17"
+  }
+}
