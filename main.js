@@ -5,7 +5,9 @@ const xlsx = require("xlsx");
 const log = require("electron-log/main");
 const { autoUpdater } = require("electron-updater");
 const { DatabaseService } = require("./database");
-const { startServer } = require("./server");
+const { DEFAULT_SERVER_HOST, startServer } = require("./server");
+
+const DEFAULT_DESKTOP_SERVER_PORT = 3105;
 
 let mainWindow = null;
 let database = null;
@@ -360,8 +362,8 @@ function registerIpcHandlers() {
 
   registerHandler("system:listLogs", (payload = {}) => database.listSystemLogs(payload));
   registerHandler("server:getMeta", () => ({
-    host: serverHandle?.host || "0.0.0.0",
-    port: serverHandle?.port || 3186
+    host: serverHandle?.host || DEFAULT_SERVER_HOST,
+    port: serverHandle?.port || DEFAULT_DESKTOP_SERVER_PORT
   }));
 
   registerHandler("settings:getSettings", () => ({
@@ -428,8 +430,8 @@ async function bootstrap() {
     db: database,
     mainWindow,
     logger: log,
-    port: Number(process.env.PMC_SERVER_PORT || 3186),
-    host: process.env.PMC_SERVER_HOST || "0.0.0.0"
+    port: Number(process.env.PMC_DESKTOP_SERVER_PORT || process.env.PMC_SERVER_PORT || DEFAULT_DESKTOP_SERVER_PORT),
+    host: process.env.PMC_DESKTOP_SERVER_HOST || process.env.PMC_SERVER_HOST || DEFAULT_SERVER_HOST
   });
 
   pushToRenderer("app:update-status", {

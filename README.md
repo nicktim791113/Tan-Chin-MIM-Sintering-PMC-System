@@ -21,14 +21,21 @@ npm run server
 網頁入口：
 
 ```text
-http://主機IP:3186/web/
+http://目前電腦IP:3106/web/
 ```
 
-`3186` 是預設 API / Web server port。若要改 port：
+`3106` 是網頁版 server-only 預設 port，`3105` 是桌面版內建 server 預設 port。若要改網頁版 port：
 
 ```powershell
-$env:PMC_SERVER_PORT="3000"
+$env:PMC_WEB_PORT="3000"
 npm run server
+```
+
+若要改桌面版內建 server port：
+
+```powershell
+$env:PMC_DESKTOP_SERVER_PORT="3001"
+npm start
 ```
 
 ## 文件

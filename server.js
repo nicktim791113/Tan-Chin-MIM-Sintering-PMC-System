@@ -1,10 +1,14 @@
 const express = require("express");
 const cors = require("cors");
 const fs = require("node:fs");
+const os = require("node:os");
 const path = require("node:path");
 const xlsx = require("xlsx");
 const { DatabaseService } = require("./database");
 const packageInfo = require("./package.json");
+
+const DEFAULT_SERVER_HOST = "0.0.0.0";
+const DEFAULT_WEB_PORT = 3106;
 
 function normalizeError(error) {
   return {
@@ -158,6 +162,47 @@ function readCliOption(name) {
   return undefined;
 }
 
+function listLanIPv4Addresses() {
+  const addresses = [];
+  const interfaces = os.networkInterfaces();
+
+  for (const entries of Object.values(interfaces)) {
+    for (const entry of entries || []) {
+      if (entry.family === "IPv4" && !entry.internal) {
+        addresses.push(entry.address);
+      }
+    }
+  }
+
+  return [...new Set(addresses)];
+}
+
+function buildWebEntryUrls(host, port) {
+  const displayHost = host || DEFAULT_SERVER_HOST;
+  const isWildcardHost = displayHost === "0.0.0.0" || displayHost === "::";
+
+  if (!isWildcardHost) {
+    return [`http://${displayHost}:${port}/web/`];
+  }
+
+  return [
+    `http://localhost:${port}/web/`,
+    ...listLanIPv4Addresses().map((address) => `http://${address}:${port}/web/`)
+  ];
+}
+
+function logWebEntryUrls(logger, host, port) {
+  const urls = buildWebEntryUrls(host, port);
+
+  for (const url of urls) {
+    logger.info(`[server] web entry: ${url}`);
+  }
+
+  if (urls.length === 1 && (host === DEFAULT_SERVER_HOST || host === "::")) {
+    logger.info("[server] LAN web entry: no active IPv4 address detected.");
+  }
+}
+
 function normalizeProfileFilters(query = {}) {
   if (Array.isArray(query.machineTypes)) {
     return query;
@@ -201,6 +246,7 @@ function createApp({ db, mainWindow, logger, serverConfig = {} }) {
       version: packageInfo.version,
       apiBasePath: "/api",
       webEntryPath: "/web/",
+      webEntryUrls: buildWebEntryUrls(serverConfig.host || request.hostname, serverConfig.port || request.socket.localPort),
       host: serverConfig.host || request.hostname,
       port: serverConfig.port || request.socket.localPort,
       mode: mainWindow ? "desktop-server" : "server"
@@ -606,6 +652,7 @@ function createApp({ db, mainWindow, logger, serverConfig = {} }) {
     response.json({
       host: serverConfig.host || request.hostname,
       port: serverConfig.port || request.socket.localPort,
+      webEntryUrls: buildWebEntryUrls(serverConfig.host || request.hostname, serverConfig.port || request.socket.localPort),
       version: packageInfo.version
     });
   });
@@ -652,7 +699,7 @@ function createApp({ db, mainWindow, logger, serverConfig = {} }) {
   return app;
 }
 
-function startServer({ db, mainWindow, logger, port = 3186, host = process.env.PMC_SERVER_HOST || "0.0.0.0" }) {
+function startServer({ db, mainWindow, logger, port = DEFAULT_WEB_PORT, host = process.env.PMC_SERVER_HOST || DEFAULT_SERVER_HOST }) {
   return new Promise((resolve, reject) => {
     const app = createApp({ db, mainWindow, logger, serverConfig: { host, port } });
     const server = app
@@ -673,17 +720,19 @@ function startServer({ db, mainWindow, logger, port = 3186, host = process.env.P
 }
 
 module.exports = {
+  DEFAULT_SERVER_HOST,
+  DEFAULT_WEB_PORT,
   startServer
 };
 
 if (require.main === module) {
   const logger = console;
   const db = new DatabaseService({ dbPath: buildStandaloneDbPath(), logger }).init();
-  const port = Number(readCliOption("port") || process.env.PMC_SERVER_PORT || 3186);
-  const host = readCliOption("host") || process.env.PMC_SERVER_HOST || "0.0.0.0";
+  const port = Number(readCliOption("port") || process.env.PMC_WEB_PORT || process.env.PMC_SERVER_PORT || DEFAULT_WEB_PORT);
+  const host = readCliOption("host") || process.env.PMC_WEB_HOST || process.env.PMC_SERVER_HOST || DEFAULT_SERVER_HOST;
 
   startServer({ db, logger, port, host }).then((handle) => {
-    logger.info(`[server] web entry: http://${host}:${port}/web/`);
+    logWebEntryUrls(logger, host, port);
 
     const shutdown = () => {
       handle.server.close(() => {
