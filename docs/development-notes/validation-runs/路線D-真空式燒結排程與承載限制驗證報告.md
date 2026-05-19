@@ -2,7 +2,7 @@
 
 執行日期：2026-05-14  
 執行者：Codex  
-驗證目標：依據 `docs/development-notes/system-validation-blueprint.md` 的「路線 D：真空式燒結排程與承載限制驗證」，檢查真空式燒結爐、燒結推薦、混裝限制、堆疊/高度限制、批次儲存、儀表板與報表追蹤。
+驗證目標：依據 `docs/development-notes/五路線系統驗證藍圖.md` 的「路線 D：真空式燒結排程與承載限制驗證」，檢查真空式燒結爐、燒結推薦、混裝限制、堆疊/高度限制、批次儲存、儀表板與報表追蹤。
 
 ## 測試範圍
 
@@ -26,7 +26,7 @@
 ## 執行方式
 
 1. 讀取藍圖 Route D 內容：
-   - `docs/development-notes/system-validation-blueprint.md`
+   - `docs/development-notes/五路線系統驗證藍圖.md`
 2. 靜態檢查主要程式檔語法：
    - `node --check database.js`
    - `node --check server.js`

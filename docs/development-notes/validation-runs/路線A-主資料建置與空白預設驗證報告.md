@@ -2,7 +2,7 @@
 
 測試日期：2026-05-14  
 測試人員：Codex  
-驗證範圍：`docs/development-notes/system-validation-blueprint.md` 的「路線 A：主資料建置與空白預設驗證」。
+驗證範圍：`docs/development-notes/五路線系統驗證藍圖.md` 的「路線 A：主資料建置與空白預設驗證」。
 
 ## 測試範圍
 
@@ -15,7 +15,7 @@
 
 ## 執行方式
 
-1. 讀取藍圖路線 A：`docs/development-notes/system-validation-blueprint.md`。
+1. 讀取藍圖路線 A：`docs/development-notes/五路線系統驗證藍圖.md`。
 2. 檢查路線 A 相關程式碼：
    - `index.html`
    - `renderer-scripts/products.js`

@@ -2,7 +2,7 @@
 
 執行日期：2026-05-14  
 執行者：Codex  
-驗證範圍：`docs/development-notes/system-validation-blueprint.md` 的「路線 B：設備、浸泡式脫脂與溶劑更換驗證」
+驗證範圍：`docs/development-notes/五路線系統驗證藍圖.md` 的「路線 B：設備、浸泡式脫脂與溶劑更換驗證」
 
 ## 測試範圍
 

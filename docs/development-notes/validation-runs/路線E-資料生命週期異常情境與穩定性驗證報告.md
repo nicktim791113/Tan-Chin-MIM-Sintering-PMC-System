@@ -1,8 +1,8 @@
-# Route E Validation Run - Data Lifecycle, Error Cases, and Stability
+# 路線 E：資料生命週期、異常情境與穩定性驗證
 
 執行日期：2026-05-14 16:32 Asia/Taipei  
 驗證人員：Codex  
-驗證藍圖：`docs/development-notes/system-validation-blueprint.md`，路線 E：資料生命週期、異常情境與穩定性驗證
+驗證藍圖：`docs/development-notes/五路線系統驗證藍圖.md`，路線 E：資料生命週期、異常情境與穩定性驗證
 
 ## 測試範圍
 
@@ -21,7 +21,7 @@
 ## 執行方式
 
 1. 閱讀路線 E 內容：
-   - `docs/development-notes/system-validation-blueprint.md` 第 313-365 行。
+   - `docs/development-notes/五路線系統驗證藍圖.md` 第 313-365 行。
 2. 程式碼檢查：
    - `database.js`：唯一索引、封存/恢復、設備狀態、報表日期篩選、系統紀錄。
    - `server.js`：`/api/health`、`/api/settings`、`/api/reports/snapshot`。
