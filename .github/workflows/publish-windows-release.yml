@@ -1,0 +1,105 @@
+name: Publish Windows Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to publish
+        required: true
+        default: v1.4.0
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout release tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Windows installer
+        run: npm run build
+
+      - name: Prepare release assets
+        shell: pwsh
+        run: |
+          $tag = "${{ inputs.tag }}"
+          $version = $tag.TrimStart("v")
+          $sourceExe = "dist\Tan Chin MIM PMC System Setup $version.exe"
+          $sourceBlockmap = "dist\Tan Chin MIM PMC System Setup $version.exe.blockmap"
+          $targetExe = "dist\Tan-Chin-MIM-PMC-System-Setup-$version.exe"
+          $targetBlockmap = "dist\Tan-Chin-MIM-PMC-System-Setup-$version.exe.blockmap"
+
+          if (!(Test-Path -LiteralPath $sourceExe)) {
+            throw "Installer not found: $sourceExe"
+          }
+          if (!(Test-Path -LiteralPath $sourceBlockmap)) {
+            throw "Blockmap not found: $sourceBlockmap"
+          }
+          if (!(Test-Path -LiteralPath "dist\latest.yml")) {
+            throw "latest.yml not found"
+          }
+
+          Copy-Item -LiteralPath $sourceExe -Destination $targetExe -Force
+          Copy-Item -LiteralPath $sourceBlockmap -Destination $targetBlockmap -Force
+
+      - name: Write release notes
+        shell: pwsh
+        run: |
+          $tag = "${{ inputs.tag }}"
+          $version = $tag.TrimStart("v")
+
+          @"
+          ## 本次更新重點
+
+          - 桌面版安裝後執行時，內建 server 預設使用 3105。
+          - 網頁版 server-only 模式預設使用 3106。
+          - server-only 啟動時會在終端機顯示 localhost 與目前電腦 LAN IP 的 /web/ 入口。
+          - /api/bootstrap 與 /api/system/meta 會回傳 webEntryUrls，方便確認正確網頁入口。
+          - 版本更新為 $version。
+
+          ## 安裝檔
+
+          請下載 Tan-Chin-MIM-PMC-System-Setup-$version.exe 安裝。
+
+          ## 驗證
+
+          - npm run build 成功產生 Windows NSIS installer。
+          - packaged win-unpacked 執行檔已在本機測試，3105 /api/bootstrap 回傳 version $version、mode desktop-server。
+          - npm run server 已在本機測試，3106 /web/ 與 API 正常。
+          - GitHub main 與 origin/main 同步確認為 0 0。
+          "@ | Set-Content -LiteralPath release-notes.md -Encoding UTF8
+
+      - name: Publish GitHub release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          $tag = "${{ inputs.tag }}"
+          $version = $tag.TrimStart("v")
+          $assets = @(
+            "dist\Tan-Chin-MIM-PMC-System-Setup-$version.exe",
+            "dist\Tan-Chin-MIM-PMC-System-Setup-$version.exe.blockmap",
+            "dist\latest.yml"
+          )
+
+          if (gh release view $tag --repo $env:REPO 2>$null) {
+            gh release upload $tag $assets --repo $env:REPO --clobber
+            gh release edit $tag --repo $env:REPO --title "v$version - Desktop 3105 / Web 3106 release" --notes-file release-notes.md
+          } else {
+            gh release create $tag $assets --repo $env:REPO --verify-tag --title "v$version - Desktop 3105 / Web 3106 release" --notes-file release-notes.md --latest
+          }
