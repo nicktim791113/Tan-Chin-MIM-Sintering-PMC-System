@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const fs = require("node:fs");
 const path = require("node:path");
 const xlsx = require("xlsx");
 const { DatabaseService } = require("./database");
@@ -124,7 +125,37 @@ function buildStandaloneDbPath() {
   }
 
   const appData = process.env.APPDATA || path.join(process.env.USERPROFILE || process.cwd(), "AppData", "Roaming");
-  return path.join(appData, "Electron", "pmc-system.db");
+  const defaultDbPath = path.join(appData, packageInfo.name, "pmc-system.db");
+  const candidates = [
+    defaultDbPath,
+    path.join(appData, packageInfo.build?.productName || "", "pmc-system.db")
+  ].filter((candidate) => candidate && candidate !== defaultDbPath);
+
+  for (const candidate of [defaultDbPath, ...candidates]) {
+    if (fs.existsSync(candidate)) {
+      return candidate;
+    }
+  }
+
+  return defaultDbPath;
+}
+
+function readCliOption(name) {
+  const prefix = `--${name}=`;
+  const exact = `--${name}`;
+  const args = process.argv.slice(2);
+
+  for (let index = 0; index < args.length; index += 1) {
+    const value = args[index];
+    if (value === exact) {
+      return args[index + 1];
+    }
+    if (value.startsWith(prefix)) {
+      return value.slice(prefix.length);
+    }
+  }
+
+  return undefined;
 }
 
 function normalizeProfileFilters(query = {}) {
@@ -648,8 +679,8 @@ module.exports = {
 if (require.main === module) {
   const logger = console;
   const db = new DatabaseService({ dbPath: buildStandaloneDbPath(), logger }).init();
-  const port = Number(process.env.PMC_SERVER_PORT || 3186);
-  const host = process.env.PMC_SERVER_HOST || "0.0.0.0";
+  const port = Number(readCliOption("port") || process.env.PMC_SERVER_PORT || 3186);
+  const host = readCliOption("host") || process.env.PMC_SERVER_HOST || "0.0.0.0";
 
   startServer({ db, logger, port, host }).then((handle) => {
     logger.info(`[server] web entry: http://${host}:${port}/web/`);

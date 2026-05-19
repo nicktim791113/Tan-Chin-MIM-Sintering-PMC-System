@@ -14,7 +14,7 @@ if ([string]::IsNullOrWhiteSpace($DestinationRoot)) {
 }
 
 if ([string]::IsNullOrWhiteSpace($UserDataPath)) {
-  $UserDataPath = Join-Path $env:APPDATA "Electron\pmc-system.db"
+  $UserDataPath = Join-Path $env:APPDATA "tan-chin-mim-pmc-system\pmc-system.db"
 }
 
 function Resolve-ProjectPath {
@@ -132,7 +132,7 @@ System version: $($packageJson.version)
 1. Close the Electron desktop app and any `npm run server` process first.
 2. Extract this zip into a new project folder.
 3. Run `npm install`.
-4. If `runtime-user-data/pmc-system.db` exists, restore it to `%APPDATA%\Electron\pmc-system.db`, or point `PMC_DB_PATH` to that database.
+4. If `runtime-user-data/pmc-system.db` exists, restore it to `%APPDATA%\tan-chin-mim-pmc-system\pmc-system.db`, or point `PMC_DB_PATH` to that database.
 5. Start the desktop app with `npm start`, or start the LAN server only with `npm run server`.
 
 ## Notes

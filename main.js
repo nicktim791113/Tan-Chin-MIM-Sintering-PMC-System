@@ -428,7 +428,8 @@ async function bootstrap() {
     db: database,
     mainWindow,
     logger: log,
-    port: 3186
+    port: Number(process.env.PMC_SERVER_PORT || 3186),
+    host: process.env.PMC_SERVER_HOST || "0.0.0.0"
   });
 
   pushToRenderer("app:update-status", {

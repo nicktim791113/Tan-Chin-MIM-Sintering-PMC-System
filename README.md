@@ -24,6 +24,13 @@ npm run server
 http://主機IP:3186/web/
 ```
 
+`3186` 是預設 API / Web server port。若要改 port：
+
+```powershell
+$env:PMC_SERVER_PORT="3000"
+npm run server
+```
+
 ## 文件
 
 - [文件索引](docs/文件索引.md)
