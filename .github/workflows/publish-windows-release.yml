@@ -30,6 +30,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Install web-client dependencies
+        run: npm ci --prefix web-client
+
       - name: Build Windows installer
         run: npm run build
 
