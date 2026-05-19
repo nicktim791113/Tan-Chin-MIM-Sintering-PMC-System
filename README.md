@@ -28,6 +28,14 @@ http://主機IP:3186/web/
 
 - [文件索引](docs/文件索引.md)
 - [開始工作前工作守則](docs/development-notes/開始工作前工作守則-雙版本架構與網頁前端同步開發.md)
+- [更新紀錄](docs/更新紀錄.md)
+- [備份與還原指令](docs/備份與還原指令.md)
+
+## 備份
+
+```powershell
+npm run backup
+```
 
 ## 版本規則
 
