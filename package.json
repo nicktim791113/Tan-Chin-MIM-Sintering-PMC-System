@@ -1,6 +1,6 @@
 {
   "name": "tan-chin-mim-pmc-system",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "Offline-first Electron desktop system for degreasing and sintering process management.",
   "author": "Tan Chin",
   "main": "main.js",

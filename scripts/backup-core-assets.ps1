@@ -8,9 +8,18 @@ $ErrorActionPreference = "Stop"
 
 $scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $repoRoot = Resolve-Path -LiteralPath (Join-Path $scriptRoot "..")
+$oneDriveRoot = if ([string]::IsNullOrWhiteSpace($env:OneDrive)) {
+  Join-Path $env:USERPROFILE "OneDrive"
+} else {
+  $env:OneDrive
+}
+$companySystemFolder = [System.Text.Encoding]::UTF8.GetString(
+  [System.Convert]::FromBase64String("RGV2ZWxvcGVyIOWFrOWPuOezu+e1sQ==")
+)
+$defaultDestinationRoot = Join-Path (Join-Path $oneDriveRoot $companySystemFolder) "Tan Chin MIM Sintering PMC System backups"
 
 if ([string]::IsNullOrWhiteSpace($DestinationRoot)) {
-  $DestinationRoot = Join-Path $repoRoot "backups"
+  $DestinationRoot = $defaultDestinationRoot
 }
 
 if ([string]::IsNullOrWhiteSpace($UserDataPath)) {
@@ -64,6 +73,7 @@ function Copy-RepoItem {
 }
 
 $coreItems = @(
+  ".github",
   ".gitignore",
   "README.md",
   "package.json",

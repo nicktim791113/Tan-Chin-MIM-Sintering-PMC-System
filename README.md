@@ -51,6 +51,14 @@ npm start
 npm run backup
 ```
 
+預設備份位置：
+
+```text
+C:\Users\nickt\OneDrive\Developer 公司系統\Tan Chin MIM Sintering PMC System backups
+```
+
+備份會包含核心程式、`docs/` 文件、`scripts/`、`.github/` 發布流程、還原說明與可選 runtime 資料庫。
+
 ## 版本規則
 
 - 版面調整或文案名稱修改：調整 patch，例如 `1.1.1`。
